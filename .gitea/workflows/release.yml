@@ -2,44 +2,67 @@ name: Release
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+    tags:
+      - 'v*'
 
 jobs:
-  build-deb:
-    runs-on: linux-amd64
-    container:
-      image: rust:1-bookworm
+  build:
+    name: Build and Release
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Cache cargo registry and build
-        uses: actions/cache@v3
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: cargo-release-${{ hashFiles('**/Cargo.lock') }}
+          toolchain: stable
+          cache: false
 
       - name: Install packaging tools
-        run: apt-get update && apt-get install -y dpkg-dev
+        run: sudo apt-get update && sudo apt-get install -y dpkg-dev
 
-      - name: Extract version
-        id: version
+      - name: Get Version
+        id: get_version
         run: |
-          VERSION=$(grep -m1 '^version' stitch-peek/Cargo.toml | sed 's/.*"\(.*\)"/\1/')
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Building version $VERSION"
+          VERSION=$(grep -m1 '^version =' stitch-peek/Cargo.toml | cut -d '"' -f 2)
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            echo "TAG=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "TAG=v$VERSION" >> $GITHUB_OUTPUT
+          fi
 
-      - name: Build release binary
+      - name: Check if Release Exists
+        id: check_release
+        shell: bash
+        run: |
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "${{ github.server_url }}/api/v1/repos/${{ github.repository }}/releases/tags/${{ steps.get_version.outputs.TAG }}")
+
+          if [ "$HTTP_STATUS" = "200" ]; then
+            echo "EXISTS=true" >> $GITHUB_OUTPUT
+            echo "Release already exists for tag ${{ steps.get_version.outputs.TAG }}. Skipping."
+          else
+            echo "EXISTS=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build
+        if: steps.check_release.outputs.EXISTS == 'false'
         run: cargo build --release -p stitch-peek
 
-      - name: Run tests
-        run: cargo test --release
+      - name: Test
+        if: steps.check_release.outputs.EXISTS == 'false'
+        run: cargo test
 
       - name: Package .deb
+        if: steps.check_release.outputs.EXISTS == 'false'
         env:
-          VERSION: ${{ steps.version.outputs.version }}
+          VERSION: ${{ steps.get_version.outputs.VERSION }}
+          TAG: ${{ steps.get_version.outputs.TAG }}
         run: |
           PKG="stitch-peek_${VERSION}_amd64"
 
@@ -53,7 +76,6 @@ jobs:
           cp data/stitch-peek.thumbnailer "${PKG}/usr/share/thumbnailers/"
           cp data/pes.xml "${PKG}/usr/share/mime/packages/"
 
-          # Control file -- fields must start at column 0, continuation lines start with a space
           printf '%s\n' \
             "Package: stitch-peek" \
             "Version: ${VERSION}" \
@@ -70,26 +92,26 @@ jobs:
           printf '#!/bin/sh\nset -e\nif command -v update-mime-database >/dev/null 2>&1; then\n  update-mime-database /usr/share/mime\nfi\n' \
             > "${PKG}/DEBIAN/postinst"
           chmod 755 "${PKG}/DEBIAN/postinst"
-
           cp "${PKG}/DEBIAN/postinst" "${PKG}/DEBIAN/postrm"
           chmod 755 "${PKG}/DEBIAN/postrm"
 
           dpkg-deb --build "${PKG}"
-          echo "Built: ${PKG}.deb"
 
-      - name: Create git tag
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          git config user.name "Gitea CI"
-          git config user.email "ci@noreply.localhost"
-          git tag -a "v${VERSION}" -m "Release v${VERSION}"
-          git push origin "v${VERSION}"
+          mv "${PKG}.deb" "stitch-peek-${TAG}-amd64.deb"
+          echo "Built: stitch-peek-${TAG}-amd64.deb"
 
-      - name: Create release
-        uses: actions/gitea-release@v1
+      - name: Create Release and Upload Asset
+        if: steps.check_release.outputs.EXISTS == 'false'
+        uses: https://github.com/softprops/action-gh-release@v1
         with:
-          token: ${{ secrets.RELEASE_TOKEN }}
-          tag_name: v${{ steps.version.outputs.version }}
-          title: v${{ steps.version.outputs.version }}
-          files: stitch-peek_${{ steps.version.outputs.version }}_amd64.deb
+          tag_name: ${{ steps.get_version.outputs.TAG }}
+          name: Release ${{ steps.get_version.outputs.TAG }}
+          body: |
+            Automated release for version ${{ steps.get_version.outputs.VERSION }}
+            Commit: ${{ github.sha }}
+            Branch: ${{ github.ref_name }}
+          files: stitch-peek-${{ steps.get_version.outputs.TAG }}-amd64.deb
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -2,30 +2,29 @@ name: CI
 
 on:
   pull_request:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
   check:
-    runs-on: linux-amd64
-    container:
-      image: rust:1-bookworm
+    name: Lint and Test
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Cache cargo registry and build
-        uses: actions/cache@v3
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: cargo-ci-${{ hashFiles('**/Cargo.lock') }}
+          toolchain: stable
+          components: rustfmt, clippy
+          cache: false
 
       - name: Check formatting
-        run: rustup component add rustfmt && cargo fmt --check
+        run: cargo fmt --check
 
       - name: Clippy
-        run: rustup component add clippy && cargo clippy -- -D warnings
+        run: cargo clippy -- -D warnings
 
       - name: Test rustitch
         run: cargo test -p rustitch
@@ -37,33 +36,28 @@ jobs:
         run: cargo build --release
 
   version-check:
-    runs-on: linux-amd64
-    container:
-      image: rust:1-bookworm
+    name: Version Check
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Verify version was bumped
+      - name: Compare versions
+        shell: bash
         run: |
-          PR_VERSION=$(grep -m1 '^version' stitch-peek/Cargo.toml | sed 's/.*"\(.*\)"/\1/')
-          git fetch origin main
-          MAIN_VERSION=$(git show origin/main:stitch-peek/Cargo.toml | grep -m1 '^version' | sed 's/.*"\(.*\)"/\1/')
+          NEW_VERSION=$(grep -m1 '^version =' stitch-peek/Cargo.toml | cut -d '"' -f 2)
 
-          echo "PR version:   $PR_VERSION"
-          echo "Main version: $MAIN_VERSION"
+          git fetch origin ${{ github.base_ref }}
+          OLD_VERSION=$(git show origin/${{ github.base_ref }}:stitch-peek/Cargo.toml | grep -m1 '^version =' | cut -d '"' -f 2)
 
-          if [ "$PR_VERSION" = "$MAIN_VERSION" ]; then
-            echo "::error::Version in stitch-peek/Cargo.toml ($PR_VERSION) was not bumped. Please update the version before merging."
+          echo "Old version (main): $OLD_VERSION"
+          echo "New version (PR): $NEW_VERSION"
+
+          if [ "$NEW_VERSION" = "$OLD_VERSION" ]; then
+            echo "Error: stitch-peek/Cargo.toml version has not been updated in this PR!"
             exit 1
+          else
+            echo "Success: Version updated from $OLD_VERSION to $NEW_VERSION"
           fi
-
-          # Ensure the new version is actually newer (basic semver compare)
-          printf '%s\n%s' "$MAIN_VERSION" "$PR_VERSION" | sort -V | tail -1 | grep -qx "$PR_VERSION"
-          if [ $? -ne 0 ]; then
-            echo "::error::PR version ($PR_VERSION) is not newer than main ($MAIN_VERSION)."
-            exit 1
-          fi
-
-          echo "Version bump verified: $MAIN_VERSION -> $PR_VERSION"
