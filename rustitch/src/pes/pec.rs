@@ -173,11 +173,7 @@ fn decode_coordinate(data: &[u8], pos: usize) -> Result<(i16, u8, usize), Error>
         Ok((value, flags, 2))
     } else {
         // 7-bit encoding (1 byte)
-        let value = if b > 0x3F {
-            b as i16 - 0x80
-        } else {
-            b as i16
-        };
+        let value = if b > 0x3F { b as i16 - 0x80 } else { b as i16 };
         Ok((value, 0, 1))
     }
 }
