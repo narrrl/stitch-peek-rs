@@ -1,6 +1,6 @@
 # stitch-peek-rs
 
-[![CI](https://git.narl.io/nvrl/stitch-peek-rs/actions/workflows/ci.yml/badge.svg)](https://git.narl.io/nvrl/stitch-peek-rs/actions/workflows/ci.yml)
+[![CI](https://git.narl.io/nvrl/stitch-peek-rs/actions/workflows/ci.yml/badge.svg)](https://git.narl.io/nvrl/stitch-peek-rs/actions?workflow=ci.yml)
 [![rustitch on crates.io](https://img.shields.io/crates/v/rustitch)](https://crates.io/crates/rustitch)
 [![stitch-peek on crates.io](https://img.shields.io/crates/v/stitch-peek)](https://crates.io/crates/stitch-peek)
 [![docs.rs](https://img.shields.io/docsrs/rustitch)](https://docs.rs/rustitch)
