@@ -24,8 +24,8 @@ fn main() -> Result<()> {
     let data = fs::read(&args.input)
         .with_context(|| format!("failed to read {}", args.input.display()))?;
 
-    let png = rustitch::thumbnail(&data, args.size)
-        .with_context(|| "failed to generate thumbnail")?;
+    let png =
+        rustitch::thumbnail(&data, args.size).with_context(|| "failed to generate thumbnail")?;
 
     fs::write(&args.output, &png)
         .with_context(|| format!("failed to write {}", args.output.display()))?;
