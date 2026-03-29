@@ -1,5 +1,9 @@
 # rustitch
 
+[![crates.io](https://img.shields.io/crates/v/rustitch)](https://crates.io/crates/rustitch)
+[![docs.rs](https://img.shields.io/docsrs/rustitch)](https://docs.rs/rustitch)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](../LICENSE)
+
 A Rust library for parsing **PES embroidery files** and rendering stitch data to images.
 
 Part of the [stitch-peek-rs](https://git.narl.io/nvrl/stitch-peek-rs) project.

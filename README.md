@@ -1,5 +1,11 @@
 # stitch-peek-rs
 
+[![CI](https://git.narl.io/nvrl/stitch-peek-rs/actions/workflows/ci.yml/badge.svg)](https://git.narl.io/nvrl/stitch-peek-rs/actions/workflows/ci.yml)
+[![rustitch on crates.io](https://img.shields.io/crates/v/rustitch)](https://crates.io/crates/rustitch)
+[![stitch-peek on crates.io](https://img.shields.io/crates/v/stitch-peek)](https://crates.io/crates/stitch-peek)
+[![docs.rs](https://img.shields.io/docsrs/rustitch)](https://docs.rs/rustitch)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 A Nautilus/GNOME thumbnailer for **PES embroidery files**. Browse your embroidery designs in the file manager with automatic thumbnail previews.
 
 Built as two crates:
