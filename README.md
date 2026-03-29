@@ -1,11 +1,13 @@
-# stitch-peek
+# stitch-peek-rs
 
 A Nautilus/GNOME thumbnailer for **PES embroidery files**. Browse your embroidery designs in the file manager with automatic thumbnail previews.
 
 Built as two crates:
 
-- **rustitch** -- library for parsing PES files and rendering stitch data to images
-- **stitch-peek** -- CLI thumbnailer that integrates with GNOME/Nautilus via the freedesktop thumbnail spec
+| Crate | Description |
+|-------|-------------|
+| [**rustitch**](rustitch/) | Library for parsing PES files and rendering stitch data to images |
+| [**stitch-peek**](stitch-peek/) | CLI thumbnailer that integrates with GNOME/Nautilus |
 
 <!-- TODO: Add screenshot of Nautilus showing PES thumbnails -->
 
@@ -13,7 +15,7 @@ Built as two crates:
 
 ### From .deb (Debian/Ubuntu)
 
-Download the latest `.deb` from the [Releases](../../releases) page:
+Download the latest `.deb` from the [Releases](https://git.narl.io/nvrl/stitch-peek-rs/releases) page:
 
 ```sh
 sudo dpkg -i stitch-peek_*_amd64.deb
@@ -25,12 +27,27 @@ This installs the binary, thumbnailer entry, and MIME type definition. Restart N
 nautilus -q
 ```
 
-### From source
-
-Requires Rust 1.70+.
+### From crates.io
 
 ```sh
-git clone https://github.com/YOUR_USER/stitch-peek-rs.git
+cargo install stitch-peek
+```
+
+Then install the data files:
+
+```sh
+sudo install -Dm644 data/stitch-peek.thumbnailer /usr/share/thumbnailers/stitch-peek.thumbnailer
+sudo install -Dm644 data/pes.xml /usr/share/mime/packages/pes.xml
+sudo update-mime-database /usr/share/mime
+nautilus -q
+```
+
+### From source
+
+Requires Rust 1.85+.
+
+```sh
+git clone https://git.narl.io/nvrl/stitch-peek-rs.git
 cd stitch-peek-rs
 cargo build --release
 
@@ -67,7 +84,7 @@ Add `rustitch` to your project:
 
 ```toml
 [dependencies]
-rustitch = { git = "https://github.com/YOUR_USER/stitch-peek-rs.git" }
+rustitch = "0.1"
 ```
 
 ```rust
@@ -76,17 +93,11 @@ let png_bytes = rustitch::thumbnail(&pes_data, 256)?;
 std::fs::write("preview.png", &png_bytes)?;
 ```
 
-## How it works
-
-1. **Parse** the PES binary format -- extract the PEC section containing stitch commands and thread color indices
-2. **Decode** the stitch byte stream into movement commands (stitches, jumps, trims, color changes)
-3. **Resolve** relative movements into absolute coordinates grouped by thread color
-4. **Render** anti-aliased line segments onto a transparent canvas using [tiny-skia](https://github.com/nickel-org/tiny-skia), scaled to fit the requested thumbnail size
-5. **Encode** the result as a PNG image
+See the [rustitch README](rustitch/README.md) for more API examples.
 
 ## Supported formats
 
-Currently supports **PES** (Brother PE-Design) embroidery files, versions 1 through 6. The PEC section -- which contains the actual stitch data -- is consistent across versions.
+**PES** (Brother PE-Design) embroidery files, versions 1 through 10. The PEC section containing stitch data is consistent across versions.
 
 ## Project structure
 
@@ -128,4 +139,4 @@ Pull requests must bump the version in `stitch-peek/Cargo.toml` -- CI will rejec
 
 ## License
 
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+[MIT](LICENSE)

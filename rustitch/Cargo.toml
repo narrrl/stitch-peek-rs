@@ -2,6 +2,13 @@
 name = "rustitch"
 version = "0.1.1"
 edition = "2024"
+description = "PES embroidery file parser and thumbnail renderer"
+license = "MIT"
+repository = "https://git.narl.io/nvrl/stitch-peek-rs"
+authors = ["Nils Pukropp <nils@narl.io>"]
+keywords = ["embroidery", "pes", "thumbnail", "stitch"]
+categories = ["graphics", "parser-implementations"]
+readme = "README.md"
 
 [dependencies]
 thiserror = "2"

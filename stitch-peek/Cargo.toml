@@ -2,8 +2,15 @@
 name = "stitch-peek"
 version = "0.1.1"
 edition = "2024"
+description = "Nautilus thumbnail generator for PES embroidery files"
+license = "MIT"
+repository = "https://git.narl.io/nvrl/stitch-peek-rs"
+authors = ["Nils Pukropp <nils@narl.io>"]
+keywords = ["embroidery", "pes", "thumbnailer", "nautilus"]
+categories = ["graphics", "command-line-utilities"]
+readme = "README.md"
 
 [dependencies]
-rustitch = { path = "../rustitch" }
+rustitch = { version = "0.1.1", path = "../rustitch" }
 clap = { version = "4", features = ["derive"] }
 anyhow = "1"
