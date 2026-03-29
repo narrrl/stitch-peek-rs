@@ -1,5 +1,8 @@
 # stitch-peek
 
+[![crates.io](https://img.shields.io/crates/v/stitch-peek)](https://crates.io/crates/stitch-peek)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](../LICENSE)
+
 A CLI tool and **Nautilus/GNOME thumbnailer** for PES embroidery files. Generates PNG previews of embroidery designs directly in your file manager.
 
 Part of the [stitch-peek-rs](https://git.narl.io/nvrl/stitch-peek-rs) project. Uses [rustitch](https://crates.io/crates/rustitch) for PES parsing and rendering.
