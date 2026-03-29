@@ -1,3 +1,5 @@
+use std::io::Cursor;
+
 use rustitch::pes::{self, StitchCommand};
 
 const GNOME_BARFS: &[u8] = include_bytes!("fixtures/JLS_Gnome Barfs.PES");
@@ -181,7 +183,7 @@ fn thumbnail_gnome_barfs_not_blank() {
 // -- Helpers -----------------------------------------------------------------
 
 fn assert_png_dimensions(png_data: &[u8], expected_w: u32, expected_h: u32) {
-    let decoder = png::Decoder::new(png_data);
+    let decoder = png::Decoder::new(Cursor::new(png_data));
     let reader = decoder.read_info().unwrap();
     let info = reader.info();
     assert_eq!(info.width, expected_w, "unexpected PNG width");
@@ -191,9 +193,9 @@ fn assert_png_dimensions(png_data: &[u8], expected_w: u32, expected_h: u32) {
 }
 
 fn decode_png_pixels(png_data: &[u8]) -> Vec<u8> {
-    let decoder = png::Decoder::new(png_data);
+    let decoder = png::Decoder::new(Cursor::new(png_data));
     let mut reader = decoder.read_info().unwrap();
-    let mut buf = vec![0u8; reader.output_buffer_size()];
+    let mut buf = vec![0u8; reader.output_buffer_size().unwrap()];
     reader.next_frame(&mut buf).unwrap();
     buf
 }
