@@ -1,0 +1,9 @@
+[package]
+name = "stitch-peek"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rustitch = { path = "../rustitch" }
+clap = { version = "4", features = ["derive"] }
+anyhow = "1"

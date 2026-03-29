@@ -1,0 +1,95 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-deb:
+    runs-on: linux-amd64
+    container:
+      image: rust:1-bookworm
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache cargo registry and build
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-release-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install packaging tools
+        run: apt-get update && apt-get install -y dpkg-dev
+
+      - name: Extract version
+        id: version
+        run: |
+          VERSION=$(grep -m1 '^version' stitch-peek/Cargo.toml | sed 's/.*"\(.*\)"/\1/')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Building version $VERSION"
+
+      - name: Build release binary
+        run: cargo build --release -p stitch-peek
+
+      - name: Run tests
+        run: cargo test --release
+
+      - name: Package .deb
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          PKG="stitch-peek_${VERSION}_amd64"
+
+          mkdir -p "${PKG}/DEBIAN"
+          mkdir -p "${PKG}/usr/bin"
+          mkdir -p "${PKG}/usr/share/thumbnailers"
+          mkdir -p "${PKG}/usr/share/mime/packages"
+
+          cp target/release/stitch-peek "${PKG}/usr/bin/"
+          strip "${PKG}/usr/bin/stitch-peek"
+          cp data/stitch-peek.thumbnailer "${PKG}/usr/share/thumbnailers/"
+          cp data/pes.xml "${PKG}/usr/share/mime/packages/"
+
+          # Control file -- fields must start at column 0, continuation lines start with a space
+          printf '%s\n' \
+            "Package: stitch-peek" \
+            "Version: ${VERSION}" \
+            "Section: graphics" \
+            "Priority: optional" \
+            "Architecture: amd64" \
+            "Depends: shared-mime-info" \
+            "Maintainer: stitch-peek contributors" \
+            "Description: Nautilus thumbnail generator for PES embroidery files" \
+            " stitch-peek generates thumbnails for Brother PES embroidery files," \
+            " allowing GNOME/Nautilus to display preview images in the file manager." \
+            > "${PKG}/DEBIAN/control"
+
+          printf '#!/bin/sh\nset -e\nif command -v update-mime-database >/dev/null 2>&1; then\n  update-mime-database /usr/share/mime\nfi\n' \
+            > "${PKG}/DEBIAN/postinst"
+          chmod 755 "${PKG}/DEBIAN/postinst"
+
+          cp "${PKG}/DEBIAN/postinst" "${PKG}/DEBIAN/postrm"
+          chmod 755 "${PKG}/DEBIAN/postrm"
+
+          dpkg-deb --build "${PKG}"
+          echo "Built: ${PKG}.deb"
+
+      - name: Create git tag
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          git config user.name "Gitea CI"
+          git config user.email "ci@noreply.localhost"
+          git tag -a "v${VERSION}" -m "Release v${VERSION}"
+          git push origin "v${VERSION}"
+
+      - name: Create release
+        uses: actions/gitea-release@v1
+        with:
+          token: ${{ secrets.RELEASE_TOKEN }}
+          tag_name: v${{ steps.version.outputs.version }}
+          title: v${{ steps.version.outputs.version }}
+          files: stitch-peek_${{ steps.version.outputs.version }}_amd64.deb

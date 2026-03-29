@@ -1,0 +1,4 @@
+[Thumbnailer Entry]
+TryExec=stitch-peek
+Exec=stitch-peek -i %i -o %o -s %s
+MimeType=application/x-pes

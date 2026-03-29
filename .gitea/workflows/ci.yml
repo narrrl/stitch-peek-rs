@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: linux-amd64
+    container:
+      image: rust:1-bookworm
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache cargo registry and build
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-ci-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Check formatting
+        run: rustup component add rustfmt && cargo fmt --check
+
+      - name: Clippy
+        run: rustup component add clippy && cargo clippy -- -D warnings
+
+      - name: Test rustitch
+        run: cargo test -p rustitch
+
+      - name: Test stitch-peek
+        run: cargo test -p stitch-peek
+
+      - name: Build
+        run: cargo build --release
+
+  version-check:
+    runs-on: linux-amd64
+    container:
+      image: rust:1-bookworm
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify version was bumped
+        run: |
+          PR_VERSION=$(grep -m1 '^version' stitch-peek/Cargo.toml | sed 's/.*"\(.*\)"/\1/')
+          git fetch origin main
+          MAIN_VERSION=$(git show origin/main:stitch-peek/Cargo.toml | grep -m1 '^version' | sed 's/.*"\(.*\)"/\1/')
+
+          echo "PR version:   $PR_VERSION"
+          echo "Main version: $MAIN_VERSION"
+
+          if [ "$PR_VERSION" = "$MAIN_VERSION" ]; then
+            echo "::error::Version in stitch-peek/Cargo.toml ($PR_VERSION) was not bumped. Please update the version before merging."
+            exit 1
+          fi
+
+          # Ensure the new version is actually newer (basic semver compare)
+          printf '%s\n%s' "$MAIN_VERSION" "$PR_VERSION" | sort -V | tail -1 | grep -qx "$PR_VERSION"
+          if [ $? -ne 0 ]; then
+            echo "::error::PR version ($PR_VERSION) is not newer than main ($MAIN_VERSION)."
+            exit 1
+          fi
+
+          echo "Version bump verified: $MAIN_VERSION -> $PR_VERSION"

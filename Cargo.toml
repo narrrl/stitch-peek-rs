@@ -1,0 +1,3 @@
+[workspace]
+members = ["rustitch", "stitch-peek"]
+resolver = "2"
