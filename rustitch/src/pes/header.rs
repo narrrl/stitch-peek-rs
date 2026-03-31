@@ -1,4 +1,4 @@
-use super::Error;
+use crate::error::Error;
 
 #[derive(Debug)]
 pub struct PesHeader {
@@ -18,7 +18,7 @@ pub fn parse_header(data: &[u8]) -> Result<PesHeader, Error> {
     if magic != b"#PES" {
         let mut m = [0u8; 4];
         m.copy_from_slice(magic);
-        return Err(Error::InvalidMagic(m));
+        return Err(Error::InvalidPesMagic(m));
     }
 
     let mut version = [0u8; 4];
@@ -41,7 +41,6 @@ mod tests {
         let mut data = vec![0u8; 20];
         data[0..4].copy_from_slice(b"#PES");
         data[4..8].copy_from_slice(b"0001");
-        // PEC offset = 16 (little-endian)
         data[8..12].copy_from_slice(&16u32.to_le_bytes());
 
         let header = parse_header(&data).unwrap();
@@ -53,7 +52,7 @@ mod tests {
     fn reject_invalid_magic() {
         let data = b"NOTPES0001\x10\x00\x00\x00";
         let err = parse_header(data).unwrap_err();
-        assert!(matches!(err, Error::InvalidMagic(_)));
+        assert!(matches!(err, Error::InvalidPesMagic(_)));
     }
 
     #[test]

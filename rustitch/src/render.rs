@@ -1,6 +1,7 @@
 use tiny_skia::{LineCap, Paint, PathBuilder, Pixmap, Stroke, Transform};
 
-use crate::pes::{Error, ResolvedDesign};
+use crate::error::Error;
+use crate::types::ResolvedDesign;
 
 /// Render a resolved embroidery design to a PNG image of the given size.
 pub fn render_thumbnail(design: &ResolvedDesign, size: u32) -> Result<Vec<u8>, Error> {
@@ -23,7 +24,6 @@ pub fn render_thumbnail(design: &ResolvedDesign, size: u32) -> Result<Vec<u8>, E
 
     let line_width = (scale * 0.3).max(1.0);
 
-    // Group segments by color index and draw each group
     let max_color = design
         .segments
         .iter()
@@ -82,7 +82,6 @@ fn encode_png(pixmap: &Pixmap) -> Result<Vec<u8>, Error> {
     let height = pixmap.height();
     let src = pixmap.data();
 
-    // Unpremultiply alpha
     let mut data = Vec::with_capacity(src.len());
     for chunk in src.chunks_exact(4) {
         let (r, g, b, a) = (chunk[0], chunk[1], chunk[2], chunk[3]);
